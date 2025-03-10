@@ -132,5 +132,8 @@ for index, prompt in enumerate(prompts):
                     st.rerun()
 
         else:
+            st.write("<h3 style='margin: 0 0 20px 0; border-bottom: 1px solid #999;'>System Prompt</h3>", unsafe_allow_html=True)
             st.write(prompt['system'])
+            st.write("---")
+            st.write("<h3 style='margin: 0 0 20px 0; border-bottom: 1px solid #999;'>Prompt</h3>", unsafe_allow_html=True)
             st.write(prompt['prompt'])
