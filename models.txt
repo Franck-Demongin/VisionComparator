@@ -1,0 +1,8 @@
+# add one model name by line.
+# line started by '#' are ignored
+llava
+moondream
+minicpm-v
+llama3.2-vision
+granite3.2-vision
+bakllava
