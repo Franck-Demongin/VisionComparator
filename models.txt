@@ -6,3 +6,4 @@ minicpm-v
 llama3.2-vision
 granite3.2-vision
 bakllava
+gemma3

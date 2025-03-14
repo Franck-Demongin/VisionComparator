@@ -24,7 +24,6 @@ def read_file(file_path: str) -> str:
 def save_models(file_path: str) -> None:
     with open(file_path, "w") as f:
         f.write(st.session_state.list_models.strip())
-    # get_available_models.clear()
     st.cache_data.clear()
     st.session_state.edit_models = False
 
@@ -56,13 +55,11 @@ def pull_model(placeholder, reload: bool = True) -> None:
                     else:
                         st.success(f"Model {st.session_state.pull_model_name} successfully pulled")
 
-                
-
                 if 'completed' in chunk:
                     if chunk.status not in progress:
                         with col2:
                             progress[chunk.status] = st.progress(chunk['completed']*100//chunk['total'], text=f"{chunk['completed']/1e9:.3f} / {chunk['total']/1e9:.2f} GB")
-                    else: # len(progress) > 0 and progress[chunk.status] is not None:
+                    else:
                         progress[chunk.status].progress(chunk['completed']*100//chunk['total'], text=f"{chunk['completed']/1e9:.3f} / {chunk['total']/1e9:.2f} GB")
             
 
@@ -75,7 +72,6 @@ def pull_model(placeholder, reload: bool = True) -> None:
             st.rerun()
         else:
             st.session_state.pull_model_name = ""
-
 
     except ollama.ResponseError as e:
         placeholder.error(e)
@@ -128,8 +124,6 @@ for model in models:
     with col3:
         st.button(":material/delete:", key=f"del_{model}", on_click=delete_model, args=(model,), type="tertiary")
     st.write("<hr style='margin: 0;'>", unsafe_allow_html=True)
-
-
 
 if pull2:
     pull_model(placeholder)
