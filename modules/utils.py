@@ -17,8 +17,18 @@ def get_available_models(models_list: str) -> list:
         raise FileNotFoundError(f"File not found: {models_list}")
 
 @cache_data
-def get_models():
+def get_models() -> list:
     return [model['model'] for model in ollama.list()['models']
+            if model['model'].split(':')[0] in get_available_models(MODELS_AVAILABLE_PATH)]
+
+@cache_data
+def get_sizes() -> list:
+    return [model['size'] for model in ollama.list()['models']
+            if model['model'].split(':')[0] in get_available_models(MODELS_AVAILABLE_PATH)]
+
+@cache_data
+def get_modified_at() -> list:
+    return [model['modified_at'] for model in ollama.list()['models']
             if model['model'].split(':')[0] in get_available_models(MODELS_AVAILABLE_PATH)]
 
 @cache_data

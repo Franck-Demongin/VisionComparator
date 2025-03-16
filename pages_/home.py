@@ -1,9 +1,11 @@
+import datetime
+import json
 import random
 import ollama
 import streamlit as st
 
 from variables import PROMPT_DEFAULT_PATH, PROMPT_USER_PATH
-from modules.utils import get_prompt, get_models, load_prompt, init_prompts
+from modules.utils import get_prompt, get_models, load_prompt
 
 def stream_data():
     """
@@ -30,10 +32,25 @@ def stream_data():
                 "seed": st.session_state.last_seed
             }
         )
-        # Iterate over each chunk of data
+        
+        response = {
+            "model": st.session_state.active_model, 
+            "response": "",
+            "done": {}
+        }
         for chunk in stream:
             if chunk.done:
                 st.session_state.done = chunk
+                response["done"]['total_duration'] = chunk.total_duration
+                response["done"]['load_duration'] = chunk.load_duration
+                response["done"]['prompt_eval_count'] = chunk.prompt_eval_count
+                response["done"]['prompt_eval_duration'] = chunk.prompt_eval_duration
+                response["done"]['eval_count'] = chunk.eval_count
+                response["done"]['eval_duration'] = chunk.eval_duration
+
+                st.session_state.response["models"].append(response)
+            else:
+                response["response"] += chunk.response
             yield chunk.response
 
     except ollama.ResponseError as e:
@@ -46,13 +63,26 @@ def use_last_seed() -> None:
 
 @st.fragment()
 def display_options() -> None:
-    col1, col2, col3 = st.columns([3,3,1], vertical_alignment="bottom")
+    st.slider("Temperature", min_value=0.0, max_value=1.0, step=0.1, value=0.0, key="temperature", help="Temperature  \n0.0: less creative  \n1.0: more creative")
+    col1, col2 = st.columns([4,1], vertical_alignment="bottom")
     with col1:
-        st.number_input("Temperature", min_value=0.0, max_value=1.0, step=0.1, value=0.0, key="temperature", help="Temperature  \n0.0: less creative  \n1.0: more creative")
-    with col2:
         st.number_input("Seed", min_value=-1, key="seed", help="Seed  \n-1: random seed")
-    with col3:
+    with col2:
         st.button(":material/sync:", key="button_last_seed", type="primary", use_container_width=True, on_click=use_last_seed, help="Use last seed")
+    st.write("---")
+
+@st.fragment()
+def download_json() -> None:
+    data = json.dumps(st.session_state.response)
+
+    st.download_button(
+        label=":material/save: Download JSON", 
+        data=data,
+        file_name=f"vision-comparator_{st.session_state.response['date'].replace(' ', '_')}.json", 
+        key="download_json", 
+        type="primary", 
+        help="Download response as JSON"
+    )
 
 if 'done' not in st.session_state:
     st.session_state['done'] = None    
@@ -68,6 +98,13 @@ if 'seed' not in st.session_state:
     st.session_state['seed'] = 42
 if 'last_seed' not in st.session_state:
     st.session_state['last_seed'] = st.session_state.seed
+if 'response' not in st.session_state:
+    st.session_state['response'] = {
+        "models": [],
+        "image": None,
+        "prompt": None,
+        "date": None
+    }
 
 prompts = load_prompt(PROMPT_USER_PATH)
 prompts = [prompt['name'] for prompt in prompts]
@@ -77,30 +114,52 @@ with st.sidebar:
 
     if "image_uploader" in st.session_state and st.session_state.image_uploader is not None:
         st.image(st.session_state.image_uploader)
+        st.write("---")
 
 st.title(":material/compare_arrows: Vision Comparator")
 models = get_models()
 
-models_selected = st.multiselect("Select a model", placeholder="Select a model", options=models, key="models_selected", label_visibility="collapsed")
+models_selected = st.multiselect("Select model(s)", placeholder="Select model(s)", options=models, key="models_selected", label_visibility="visible", help="Select model(s) to compare")
 
-image = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"], key="image_uploader", label_visibility="collapsed")
+col1, col2 = st.columns([1,1], vertical_alignment="top")
 
-col1, col2 = st.columns([5,1], vertical_alignment="bottom")
 with col1:
-    prompt_name = st.selectbox("Select a prompt", prompts, key="prompt_selected")
+    image = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"], key="image_uploader", label_visibility="visible", help="Upload an image")
+with col2:
+    prompt_name = st.selectbox("Select a prompt", prompts, key="prompt_selected", help="Select a prompt to use")
     prompt_selected = get_prompt(prompt_name)
     system = None
     prompt = None
     if prompt_name is not None and prompt_name != "None":
         system = prompt_selected['system']
         prompt = prompt_selected['prompt']
-with col2:
     disabled = True
     if len(models_selected) > 0 and image is not None:
         disabled = False
-    compare = st.button("Compare", disabled=disabled, key="compare", use_container_width=True, type="primary")
+    compare = st.button(":material/compare_arrows: Compare", disabled=disabled, key="compare", use_container_width=True, type="primary")
+if prompt_name is not None and prompt_name != "None":
+    with st.expander("Prompt & Image selected"):
+        col1, col2 = st.columns([1,2], vertical_alignment="top")
+        with col1:
+            if image is not None:
+                st.image(image)
+            else:
+                st.write("No image uploaded")
+        with col2:
+            st.write("#### Promt System")
+            st.write(prompt_selected['system'])
+            st.write("#### Prompt")
+            st.write(prompt_selected['prompt']) 
 
 if compare:
+
+    st.session_state.response = {
+        "models": [],
+        "image": None,
+        "prompt": None,
+        "date": None
+    }
+
     bytes_data = image.getvalue()
 
     st.session_state.prompt = prompt
@@ -119,3 +178,13 @@ if compare:
         st.write("<hr style='margin: 0;'>", unsafe_allow_html=True)
         if st.session_state.done is not None:
             st.write(f"<p style='color: #999; font-size: .9em; text-align: right;'>Done in {st.session_state.done['total_duration'] / 10**9:.2f}s - Tokens: {st.session_state.done['eval_count']} - Speed {st.session_state.done['eval_count'] / st.session_state.done['eval_duration'] * 10**9:.2f} tokens/s - Seed {st.session_state.last_seed} - Temperature {round(st.session_state.temperature, 2)}</p>", unsafe_allow_html=True)
+
+    st.write("<hr style='margin: 0;'>", unsafe_allow_html=True)
+
+    st.session_state.response["date"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    st.session_state.response["image"] = image.name
+    st.session_state.response["prompt"] = prompt_name
+
+    col1, _ = st.columns([1,1], vertical_alignment="bottom")
+    with col1:
+        download_json()

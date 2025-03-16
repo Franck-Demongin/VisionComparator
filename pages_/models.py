@@ -1,8 +1,9 @@
+import datetime
 import time
 import ollama
 import streamlit as st
 
-from modules.utils import get_available_models, get_models, load_prompt
+from modules.utils import get_available_models, get_models, get_sizes, get_modified_at
 from variables import MODELS_AVAILABLE_PATH, PROMPT_DEFAULT_PATH, PROMPT_USER_PATH
 
 css = """
@@ -94,6 +95,8 @@ else:
 
 st.write("### Models available")
 models = get_models()
+sizes = get_sizes()
+modified_at = get_modified_at()
 
 col1, col2 = st.columns([5, 1], vertical_alignment="bottom")
 with col1:
@@ -104,25 +107,33 @@ with col2:
 
 placeholder = st.empty()
 
-col1, col2, col3 = st.columns([10, 1, 1], vertical_alignment="center")
+col1, col2, col3, col4, col5 = st.columns([4, 2, 2, 1, 1], vertical_alignment="center")
 with col1:
     st.write("**Model name**")
 with col2:
-    st.write("**Reload**")
+    st.write("**Size**")
 with col3:
+    st.write("**Modified**")
+with col4:
+    st.write("**Reload**")
+with col5:
     st.write("**Delete**")
 
 st.write("<hr style='margin: 0; border-width: 1px; border-bottom-color: #1c83e1;'>", unsafe_allow_html=True)
 
 
-for model in models:
-    col1, col2, col3 = st.columns([10, 1, 1], vertical_alignment="center")
+for size, model, modified in zip(sizes, models, modified_at):
+    col1, col2, col3, col4, col5 = st.columns([4, 2, 2, 1, 1], vertical_alignment="center")
     with col1:
         st.write(model)
     with col2:
-        st.button(":material/sync:", key=f"reload_{model}", on_click=reload_model, args=(model, placeholder), type="tertiary")
+        st.write(f"{size / 1e9:.2f} GB")
     with col3:
-        st.button(":material/delete:", key=f"del_{model}", on_click=delete_model, args=(model,), type="tertiary")
+        st.write(modified.strftime("%Y-%m-%d %H:%M:%S"))
+    with col4:
+        st.button(":material/sync:", key=f"reload_{model}", on_click=reload_model, args=(model, placeholder), type="tertiary", use_container_width=True)
+    with col5:
+        st.button(":red[:material/delete:]", key=f"del_{model}", on_click=delete_model, args=(model,), type="tertiary", use_container_width=True)
     st.write("<hr style='margin: 0;'>", unsafe_allow_html=True)
 
 if pull2:
