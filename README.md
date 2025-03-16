@@ -74,6 +74,8 @@ pip install -U -r requirements.txt
 
 ## Usage
 
+![ui_home](https://github.com/user-attachments/assets/feceee9d-6108-4ad5-a82e-7621f1a0a37a)
+
 Open a terminal in the folder VisionComparator.  
 Activate the virtual environmant:
 
