@@ -16,7 +16,7 @@ css = """
 """
 st.html(css)
 
-st.write("## Models")
+st.write("## :material/network_node: Models")
 
 def read_file(file_path: str) -> str:
     with open(file_path, "r") as f:

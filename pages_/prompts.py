@@ -15,7 +15,7 @@ css = """
 """
 st.html(css)
 
-st.write("## Settings")
+st.write("## :material/article: Prompts")
 
 def reset_prompts(prompt_path: str, default_path: str) -> None:
     with open(prompt_path, "w") as f:
@@ -26,7 +26,7 @@ def reset_prompts(prompt_path: str, default_path: str) -> None:
 
 def add_prompt() -> None:
     if len(st.session_state.prompt_name.strip()) == 0:
-        st.toast(f"_**Name**_ cannot be empty", icon=":material/warning:")
+        st.toast(f":red[_**Name**_ cannot be empty]", icon=":material/warning:")
         return
     prompts = load_prompt(PROMPT_USER_PATH)
     prompts = [prompt for prompt in prompts if prompt['name'] != st.session_state.prompt_name]
@@ -72,9 +72,9 @@ def delete_prompt(prompt_name: str) -> None:
     st.cache_data.clear()
 
 
-col1, col2, col3 = st.columns([15, 1, 1], vertical_alignment="center")
-with col1:
-    st.write("### Prompts")
+_, col2, col3 = st.columns([15, 1, 1], vertical_alignment="center")
+# with col1:
+#     st.write("### Prompts")
 with col2:
     st.button(
         ":material/sync:", 
@@ -83,7 +83,7 @@ with col2:
         args=(PROMPT_USER_PATH, PROMPT_DEFAULT_PATH), 
         type="secondary", 
         use_container_width=True,
-        help="Reset prompts to default.\n\n:red[:material/warning: _this will delete all your custom prompts_]"
+        help="Reset prompts to default.  \n:red[:material/warning: _this will delete all your custom prompts_]"
     )    
 with col3:
     prompt_add = st.button(
@@ -168,9 +168,8 @@ for index, prompt in enumerate(prompts):
                     st.rerun()
 
         else:
-            st.write("<h3 style='margin: 0 0 20px 0; border-bottom: 1px solid #1c83e1;'>Description</h3>", unsafe_allow_html=True)
             st.write(prompt['description'])
-            st.write("<h3 style='margin: 0 0 20px 0; border-bottom: 1px solid #1c83e1;'>System Prompt</h3>", unsafe_allow_html=True)
+            st.write("<h3 style='margin: 0 0 20px 0; border-bottom: 1px solid rgba(128, 128, 128, 0.3);'>System Prompt</h3>", unsafe_allow_html=True)
             st.write(prompt['system'])
-            st.write("<h3 style='margin: 0 0 20px 0; border-bottom: 1px solid #1c83e1;'>Prompt</h3>", unsafe_allow_html=True)
+            st.write("<h3 style='margin: 0 0 20px 0; border-bottom: 1px solid rgba(128, 128, 128, 0.3);'>Prompt</h3>", unsafe_allow_html=True)
             st.write(prompt['prompt'])

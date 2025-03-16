@@ -29,8 +29,9 @@ st.html(css)
 pg = st.navigation(
     [
         st.Page("pages_/home.py", title="Comparator", icon=":material/compare_arrows:"),
-        st.Page("pages_/models.py", title="Models", icon=":material/settings:"),
-        st.Page("pages_/prompts.py", title="Prompts", icon=":material/settings:")
+        st.Page("pages_/models.py", title="Models", icon=":material/network_node:"),
+        st.Page("pages_/prompts.py", title="Prompts", icon=":material/article:"),
+        st.Page("pages_/viewer.py", title="Viewer", icon=":material/visibility:")
     ]
 )
 pg.run()

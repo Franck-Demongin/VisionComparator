@@ -1,11 +1,14 @@
+import base64
 import datetime
+from io import BytesIO
 import json
 import random
 import ollama
+import pandas as pd
 import streamlit as st
 
 from variables import PROMPT_DEFAULT_PATH, PROMPT_USER_PATH
-from modules.utils import get_prompt, get_models, load_prompt
+from modules.utils import get_prompt, get_models, load_prompt, load_duration, total_duration
 
 def stream_data():
     """
@@ -26,35 +29,61 @@ def stream_data():
             images=[st.session_state.image],
             stream=True,
             format='',
-            keep_alive=0,
+            keep_alive=-1,
             options={
                 "temperature": st.session_state.temperature,
                 "seed": st.session_state.last_seed
             }
         )
         
-        response = {
-            "model": st.session_state.active_model, 
-            "response": "",
-            "done": {}
-        }
+        response = ""
+        done = {}
         for chunk in stream:
             if chunk.done:
                 st.session_state.done = chunk
-                response["done"]['total_duration'] = chunk.total_duration
-                response["done"]['load_duration'] = chunk.load_duration
-                response["done"]['prompt_eval_count'] = chunk.prompt_eval_count
-                response["done"]['prompt_eval_duration'] = chunk.prompt_eval_duration
-                response["done"]['eval_count'] = chunk.eval_count
-                response["done"]['eval_duration'] = chunk.eval_duration
+                done['total_duration'] = chunk.total_duration
+                done['load_duration'] = chunk.load_duration
+                done['prompt_eval_count'] = chunk.prompt_eval_count
+                done['prompt_eval_duration'] = chunk.prompt_eval_duration
+                done['eval_count'] = chunk.eval_count
+                done['eval_duration'] = chunk.eval_duration
 
-                st.session_state.response["models"].append(response)
+                st.session_state.response["models"][-1]["prompts"][-1]["response"] = response.strip()
+                st.session_state.response["models"][-1]["prompts"][-1]["done"] = done
             else:
-                response["response"] += chunk.response
+                response += chunk.response
             yield chunk.response
 
     except ollama.ResponseError as e:
+        st.session_state.done = None
+        st.session_state.response["models"][-1]["prompts"][-1]["error"] = str(e)
         st.error(f"Error: {e}")
+
+def display_chart(data: dict):
+    st.write("---")
+    st.write("#### Stats")
+    col1, col2 = st.columns(2)
+    with col1:
+        duration = load_duration(data=data)
+        st.bar_chart(
+            duration,   
+            x="models",
+            x_label="Model(s) Load Duration",
+            y_label="Time (s)",
+            horizontal=False
+        )
+    with col2:
+        keys_, total = total_duration(data=data)
+        st.bar_chart(
+            total,
+            x="col1",
+            x_label="Prompt(s) Eval Duration",
+            y=keys_,
+            y_label="Time (s)",
+            horizontal=False,
+            stack=False,
+        )
+    st.write("---")
 
 def use_last_seed() -> None:
     '''Last seed'''
@@ -84,6 +113,9 @@ def download_json() -> None:
         help="Download response as JSON"
     )
 
+def free_memory(model: str) -> None:
+    ollama.generate(model=model, keep_alive=0)
+
 if 'done' not in st.session_state:
     st.session_state['done'] = None    
 if 'active_model' not in st.session_state:
@@ -100,10 +132,7 @@ if 'last_seed' not in st.session_state:
     st.session_state['last_seed'] = st.session_state.seed
 if 'response' not in st.session_state:
     st.session_state['response'] = {
-        "models": [],
-        "image": None,
-        "prompt": None,
-        "date": None
+        "models": []
     }
 
 prompts = load_prompt(PROMPT_USER_PATH)
@@ -126,44 +155,21 @@ col1, col2 = st.columns([1,1], vertical_alignment="top")
 with col1:
     image = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"], key="image_uploader", label_visibility="visible", help="Upload an image")
 with col2:
-    prompt_name = st.selectbox("Select a prompt", prompts, key="prompt_selected", help="Select a prompt to use")
-    prompt_selected = get_prompt(prompt_name)
-    system = None
-    prompt = None
-    if prompt_name is not None and prompt_name != "None":
-        system = prompt_selected['system']
-        prompt = prompt_selected['prompt']
+    prompts_selected = st.multiselect("Select prompt(s)", placeholder="Select prompt(s)", options=prompts, key="prompt_selected", help="Select prompt(s) to use")
+   
     disabled = True
-    if len(models_selected) > 0 and image is not None:
+    if len(models_selected) > 0 and image is not None and len(prompts_selected) > 0:
         disabled = False
     compare = st.button(":material/compare_arrows: Compare", disabled=disabled, key="compare", use_container_width=True, type="primary")
-if prompt_name is not None and prompt_name != "None":
-    with st.expander("Prompt & Image selected"):
-        col1, col2 = st.columns([1,2], vertical_alignment="top")
-        with col1:
-            if image is not None:
-                st.image(image)
-            else:
-                st.write("No image uploaded")
-        with col2:
-            st.write("#### Promt System")
-            st.write(prompt_selected['system'])
-            st.write("#### Prompt")
-            st.write(prompt_selected['prompt']) 
 
 if compare:
 
     st.session_state.response = {
-        "models": [],
-        "image": None,
-        "prompt": None,
-        "date": None
+        "models": []
     }
 
     bytes_data = image.getvalue()
 
-    st.session_state.prompt = prompt
-    st.session_state.system = system
     st.session_state.image = bytes_data
 
     if st.session_state.seed == -1:
@@ -171,20 +177,56 @@ if compare:
     else:
         st.session_state.last_seed = st.session_state.seed
 
+    placeholder_stats = st.empty()
+
     for model in models_selected:
         st.session_state.active_model = model
         st.write(f"### {model}")
-        st.write_stream(stream_data)
-        st.write("<hr style='margin: 0;'>", unsafe_allow_html=True)
-        if st.session_state.done is not None:
-            st.write(f"<p style='color: #999; font-size: .9em; text-align: right;'>Done in {st.session_state.done['total_duration'] / 10**9:.2f}s - Tokens: {st.session_state.done['eval_count']} - Speed {st.session_state.done['eval_count'] / st.session_state.done['eval_duration'] * 10**9:.2f} tokens/s - Seed {st.session_state.last_seed} - Temperature {round(st.session_state.temperature, 2)}</p>", unsafe_allow_html=True)
+
+        model_object = {
+            "name": model,
+            "prompts": [],
+        }
+        st.session_state.response["models"].append(model_object)
+
+        for prompt_name in prompts_selected:
+
+            st.session_state.response["models"][-1]["prompts"].append(
+                {
+                    "prompt": prompt_name,
+                    "response": None,
+                    "done": {}
+                }
+            )
+
+            prompt = get_prompt(prompt_name)
+            st.session_state.system = prompt['system']
+            st.session_state.prompt = prompt['prompt']
+
+            with st.expander(prompt_name):
+                st.write(f"#### {prompt['name']}")
+                st.write(prompt['description'])
+                st.write(f"#### System Prompt")
+                st.write(prompt['system'])
+                st.write(f"#### Prompt")
+                st.write(prompt['prompt'])
+
+            st.write_stream(stream_data)
+            st.write("<hr style='margin: 0;'>", unsafe_allow_html=True)
+            if st.session_state.done is not None:
+                st.write(f"<p style='color: #999; font-size: .9em; text-align: right;'>Done in {st.session_state.done['total_duration'] / 10**9:.2f}s - Tokens: {st.session_state.done['eval_count']} - Speed {st.session_state.done['eval_count'] / st.session_state.done['eval_duration'] * 10**9:.2f} tokens/s - Seed {st.session_state.last_seed} - Temperature {round(st.session_state.temperature, 2)}</p>", unsafe_allow_html=True)
+
+    free_memory(model=st.session_state.active_model)
 
     st.write("<hr style='margin: 0;'>", unsafe_allow_html=True)
 
     st.session_state.response["date"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    st.session_state.response["image"] = image.name
-    st.session_state.response["prompt"] = prompt_name
+    st.session_state.response["image_name"] = image.name
+    st.session_state.response["image_data"] = base64.b64encode(bytes_data).decode("utf-8")
 
     col1, _ = st.columns([1,1], vertical_alignment="bottom")
     with col1:
         download_json()
+    
+    with placeholder_stats.container():
+        display_chart(data=st.session_state.response)

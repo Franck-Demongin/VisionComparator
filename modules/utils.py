@@ -1,7 +1,8 @@
 import os
+
+import pandas as pd
 from variables import MODELS_AVAILABLE_PATH, PROMPT_USER_PATH
 from streamlit import cache_data
-# import streamlit as st
 import ollama
 import json
 
@@ -52,3 +53,38 @@ def get_prompt(prompt_name: str) -> str:
         if prompt['name'] == prompt_name:
             return prompt
     return {}
+
+def load_duration(data: dict) -> pd.DataFrame:
+    data_duration = pd.DataFrame(
+        {
+            "models": [model['name'] for model in data['models']],
+            "duration": [model['prompts'][0]['done']['load_duration'] / 10**9 for model in data['models']]
+        }
+    )
+    return data_duration
+
+def total_duration(data: dict) -> tuple[list[str], pd.DataFrame]:
+    data_models = {}
+    for model in data['models']:
+        data_models[model['name']] = []
+        for prompt in model['prompts']:
+            data_models[model['name']].append(prompt['done']['eval_duration'] / 10**9)
+
+    data_duration = pd.DataFrame(
+        {
+            "col1": [prompt['prompt'] for prompt in data['models'][0]['prompts']]
+        }
+    
+    )
+    data_duration = data_duration.join(pd.DataFrame(data_models))
+
+    if len(data_models) == 1: 
+        key = list(data_models.keys())[0]
+        new_key = key.replace(':', '-')
+        keys = [new_key]
+        data_duration[new_key] = data_duration[key]
+        data_duration.pop(key)
+    else:
+        keys = list(data_models.keys())
+
+    return keys, data_duration

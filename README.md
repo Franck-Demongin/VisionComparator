@@ -1,20 +1,22 @@
 ![hero_vision-comparator_0 1 0](https://github.com/user-attachments/assets/682347c9-e247-4bb5-9754-7f86a7593d52)
 
-<img src="https://img.shields.io/badge/Python-3.10-blue" /> ![Static Badge](https://img.shields.io/badge/Ollama-0.5.13-blue) ![Static Badge](https://img.shields.io/badge/Streamlit-1.42.0-blue) [![GPLv3 license](https://img.shields.io/badge/License-GPLv3-green.svg)](http://perso.crans.org/besson/LICENSE.html)
+<img src="https://img.shields.io/badge/Python-3.10-blue" /> ![Static Badge](https://img.shields.io/badge/Ollama-0.6.0-blue) ![Static Badge](https://img.shields.io/badge/Streamlit-1.42.0-blue) [![GPLv3 license](https://img.shields.io/badge/License-GPLv3-green.svg)](http://perso.crans.org/besson/LICENSE.html)
 
 # Vision Comparator
 
-**Version: 0.1.0**
+<img src="https://img.shields.io/badge/Version-0.2.0-blue" />
 
 Vision Comparator lets you test and compare multi-models with the vision capabilities available with Ollama.
 
 It allows you to:
 
-- submit an image to several models simultaneously to compare results.
-- manage the prompts used (Select, Create, Update, Delete).
+- submit an image to several models and several prompts simultaneously to compare results.
+- download the results as JSON
 - manage models:
   - list of models supporting vision functionalities
-  - retrieve, update, delete
+  - pull, update, delete
+- manage the prompts used (Select, Create, Update, Delete).
+- display JSON results.
 
 ## Installation
 
@@ -93,7 +95,9 @@ Open your browser and navigate to [http://localhost:8501](http://localhost:8501)
 
 ### Compare models
 
-To test and compare models, select one or more models, choose a prompt and an image to compare the results.
+To test and compare models, select one or more models, choose one or more prompts and an image to compare the results.
+
+At the end of the session, the statistics are displayed and you can download the results as JSON.
 
 ### Manage models
 
@@ -117,6 +121,34 @@ You can create, update or delete prompts.
 
 To restore the list of default prompts, click on the _Refresh_ button.
 
+### View results saved as JSON
+
+To view the results saved as JSON, go to the _Viewer_ page and load a JSON file.
+
 ## License
 
 This project is released under the [GPLv3 license](http://perso.crans.org/besson/LICENSE.html)
+
+## Changelog
+
+### 0.2.0 - 2025-03-16
+
+**New features:**
+
+- Compare models with multiple prompts
+- Download results as JSON
+- Display Statistics
+- View results saved as JSON
+
+**Bug fixes:**
+
+- Fix bug when adding a prompt with the same name or whith a blank name
+- Fix bug when renaming a prompt
+
+### 0.1.0 - 2025-03-10
+
+**First release:**
+
+- Compare models
+- List of models with vision support
+- Create, update and delete prompts
