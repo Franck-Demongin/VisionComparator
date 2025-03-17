@@ -133,6 +133,13 @@ This project is released under the [GPLv3 license](http://perso.crans.org/besson
 
 ## Changelog
 
+### 0.2.1 - 2025-03-17
+
+**Bug fixes:**
+
+- Chart do not display correctly when there is only one result and a period in the name of the model
+- Model response error causes a crash in Comaprator and Viewer
+
 ### 0.2.0 - 2025-03-16
 
 **New features:**

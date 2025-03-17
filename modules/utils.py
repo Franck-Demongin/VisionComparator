@@ -58,7 +58,7 @@ def load_duration(data: dict) -> pd.DataFrame:
     data_duration = pd.DataFrame(
         {
             "models": [model['name'] for model in data['models']],
-            "duration": [model['prompts'][0]['done']['load_duration'] / 10**9 for model in data['models']]
+            "duration": [model['prompts'][0]['done']['load_duration'] if 'error' not in model['prompts'][0] or model['prompts'][0]['error'] is None else 0 / 10**9 for model in data['models'] ]
         }
     )
     return data_duration
@@ -68,7 +68,7 @@ def total_duration(data: dict) -> tuple[list[str], pd.DataFrame]:
     for model in data['models']:
         data_models[model['name']] = []
         for prompt in model['prompts']:
-            data_models[model['name']].append(prompt['done']['eval_duration'] / 10**9)
+            data_models[model['name']].append(prompt['done']['eval_duration'] / 10**9 if 'error' not in model['prompts'][0] or model['prompts'][0]['error'] is None else 0)
 
     data_duration = pd.DataFrame(
         {
@@ -78,9 +78,14 @@ def total_duration(data: dict) -> tuple[list[str], pd.DataFrame]:
     )
     data_duration = data_duration.join(pd.DataFrame(data_models))
 
+
+
     if len(data_models) == 1: 
         key = list(data_models.keys())[0]
         new_key = key.replace(':', '-')
+        new_key = new_key.replace('.', '-')
+        print(key, new_key)
+        # new_key = "Test"
         keys = [new_key]
         data_duration[new_key] = data_duration[key]
         data_duration.pop(key)

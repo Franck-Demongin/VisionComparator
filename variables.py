@@ -1,6 +1,6 @@
 import os
 
-VERSION = "0.2.0"
+VERSION = "0.2.1"
 
 MODELS_AVAILABLE_PATH = os.path.join(os.path.dirname(__file__), "models.txt")
 PROMPT_DEFAULT_PATH = os.path.join(os.path.dirname(__file__), "prompts_default.json")

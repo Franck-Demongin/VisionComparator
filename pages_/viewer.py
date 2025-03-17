@@ -20,6 +20,7 @@ def display_chart(data: dict):
         )
     with col2:
         keys_, total = total_duration(data=data)
+        print(keys_, total)
         st.bar_chart(
             total,
             x="col1",
@@ -63,6 +64,11 @@ else:
             st.write(f"### Model: {model['name']}")
             for prompt in model['prompts']:
                 st.write(f"#### Prompt: {prompt['prompt']}")
+
+                if 'error' in prompt and prompt['error'] is not None:
+                    st.error(prompt['error'])
+                    continue
+
                 st.write(prompt['response'])
 
                 done = [
